@@ -3,6 +3,10 @@ typora-root-url: 图片
 typora-copy-images-to: 图片
 ---
 
+[TOC]
+
+
+
 # js高级程序设计
 
 ## 第一章：js 简介
@@ -736,6 +740,25 @@ friend.sayhi();  // "hi(没有问题)
 // 所有只能放在后面，感觉类似与非响应式
 ```
 
+对于上面的friend定义的位置得到不同的结果。可以得到
+
+```js
+
+      var A = function() {};
+      A.prototype.n = 1;
+      var b = new A();
+      A.prototype = { n: 2, m: 3 };
+      var c = new A();
+      console.log(b.n);
+      console.log(b.m);
+      console.log(c.n);
+      console.log(c.m);
+	  // 1 undefined 2 3
+上面结果我认为可以这样考虑：
+	 对于前面已经new的实例，它的portotype指向了原型对象，但是当重构prototype之后，如下图所示，出现new person prototype，但前面实例还是指向person prototype。
+     对于重构prototype之后（重写整个原型对象）实现new的实例，它的prototype已经指向新的new person prototype。
+```
+
 ![image-20210118163504516](/image-20210118163504516.png)
 
 ![image-20210118164028988](/image-20210118164028988.png)
@@ -748,7 +771,7 @@ friend.sayhi();  // "hi(没有问题)
 
 ##### 原生对象的问题
 
-​	共享的问题
+​	共享的问题,对于包含**引用类型的属性**来说就比较恐怖了。
 
 ![image-20210118164842317](/image-20210118164842317.png)
 
@@ -760,13 +783,86 @@ friend.sayhi();  // "hi(没有问题)
 
 #### 动态原型模式
 
+可以通过检查某个应该存在的方法是否有效，来决定是否需要初始化原型。
+
+```js
+// 动态原型模式
+function obj(name){
+    this.name = name
+    if(typeof this.saihi!='function'){
+        obj.prototype.saihi=function(){
+            console.log(this.name);
+        }
+    }
+}
+let obj1 = new obj('123')
+obj1.saihi()
+```
+
+
+
 #### 寄生构造函数模式
+
+```js
+      function createPerson(name, age) {
+        var o = new Object();
+        o.name = nae;
+        o.age = age;
+        o.sayName = function () {
+          alert(this.name);
+        };
+        return o;
+      }
+      var person1 =new  createPerson("Nicholas", 29);
+      var person2 = new createPerson("Greg", 27);
+```
+
+
 
 #### 稳妥构造函数模式
 
+稳妥对象(durable objects)：没有公共属性，而且其方法也不引用this的对象叫作稳妥对象。
+
+凡是想设为 private 的成员都不要挂到 person 返回的对象 o 的属性上面，挂上了就是 public 的了。
+
+```js
+
+function createPerson(name, age, job) {
+    var o = new Object();
+    //相当于private memebers
+    var name = name;
+    var age = age;
+    //相当于public members
+    o.job = job;  //稳妥构造函数模式不应该把属性写成o.job，这会让外部函数访问到他
+    o.sayName = function() {
+        alert(name);
+    };
+    o.sayAge = function() {
+        alert(age);
+    }
+    return o;
+}
+var person1 = createPerson("Nicholas", 29, "Software Engineer");
+person1.sayName();    //Nicholas
+person1.sayAge();     //29
+alert(person1.name);  //undefined
+alert(person1.age);   //undefined
+
+```
+
+(1) 新创建对象的实例方法不能引用**this**
+
+(2) 不使用new调用构造函数
+
+这里没有使用this，也不用new调用构造函数。
+
+可以看到alert是不能访问对象的name和age的，但是可以访问job
+
+凡是想设为 private 的成员都不要挂到 Person 返回的对象 o 的属性上面，挂上了就是 public 的了。
+
 ------
 
-
+------
 
 ### 继承
 
@@ -936,11 +1032,86 @@ SubType.prototype.isPrototypeOf(instance); // true
 
 #### 组合继承
 
+  组合继承也叫伪经典继承，将原型链和借用构造函数的技术组合到一块，从而发挥两者之长的一种继承模式。
+
+```js
+// 组合继承 
+// 实例继承和 原型继承
+function parent(){
+    this.name= 'tang'
+}
+parent.prototype.age= '16'
+
+function child(){
+    this.friend= 'tim'
+    parent.call(this)
+
+}
+child.prototype = new parent()
+
+```
+
+
+
 #### 原型式继承
 
 #### 寄生式继承
 
+```js
+// 寄生式继承
+function parents(name){
+    let clone = new Object(name)
+    clone.sayhi = function(){
+      console.log('hello world');
+    }
+    return clone
+}
+let person={
+    name:'jack',
+    friends:['1','2']
+}
+let obj = new parents(person)
+obj.sayhi();
+```
+
+
+
 #### 寄生组合式继承
+
+​	对于组合式继承，会调用两次超类的构造函数，一组在原型上，一组在实例上，但是实例上的会屏蔽掉实例里面的。
+
+借用构造函数来继承属性，通过原型链的混成形式来继承属性，通过原型链的混成形式来继承发。背后思路是：不必为了指定子类型的原型而调用超类型的构造函数，我们所需要的无非就是超类型原型的一个副本而已本质上就是使用寄生式继承来继承超类型的原型，然后再将结果指定给子类型的原型。
+
+```js
+// 寄生组合式继承
+// 用一个额外的函数来直接继承原型
+// 比起组合继承少调用一次超类的实例
+
+function inherit(subtype,supertype){
+    let clone = new Object(supertype.prototype)
+    clone.constructor = subtype
+    subtype.prototype = clone
+    return clone
+}
+
+function supertype(){
+    this.name = 'tang'
+}
+
+function subtype(){
+    supertype.call(this)
+}
+
+inherit(subtype,supertype)
+// 但是子类的原型添加方法必须再这后面，因为上一句相当于重写subtype的原型
+
+let obj = new subtype()
+console.log(obj.name);
+```
+
+
+
+
 
 ## 第七章：函数表达式
 
@@ -1109,3 +1280,171 @@ for (var a = 0; a <20; a++) {
 ### 模仿块级作用域
 
 ### 私有变量
+
+------
+
+## 第八章：BOM
+
+## window对象
+
+​	它既是js访问浏览器窗口的一个接口，又是ECMAScript规定的Global对象。这意味着网页中定义的任何一个对象，变量，和函数，都以window作为其Global对象，因此有权访问parseInt()对象。
+
+### 全局作用域
+
+```js
+    <script>
+      var age = 29;
+      function sayage() {
+        alert(this.age);
+      }
+      alert(window.age); //29
+      sayage(); //29
+      window.sayage(); // 29
+    </script>
+```
+
+​	全局变量和window对象的属性有点差别：window对象属性可以使用delete删除，全局变量不能。
+
+```js
+      var age = 29;
+      window.say = "red";
+
+      delete window.age;
+      delete window.say;
+
+      console.log(window.age); // 29
+      console.log(window.say); // undefined
+```
+
+### 窗口关系及框架
+
+​	页面中包含框架，每个框架都拥有自己的window对象，并且保存在frames集合中。通过数值索引。
+
+## 第二十章：Json
+
+​	这是一种数据格式，而不是一种编程语言。虽然具有相同的语法形式，但Json并不从属于js。
+
+### 语法
+
+​	语法有三种类型的值：
+
+![image-20210126110856985](/image-20210126110856985.png)
+
+#### 简单值
+
+​	对于字符串json中必须使用双引号。布尔值和null也是有效的Json形式。
+
+#### 对象
+
+```js
+// 前面需要加上双引号
+var obj = {
+	"name":"nicholas",
+	"age":29
+}
+```
+
+#### 数组
+
+```js
+"name":["name1","name2",....]
+```
+
+## 解析和序列化
+
+​	可以将json解析为有用的js对象。
+
+​	JSon对象有两个方法：stringify()和parse()。在最简单的情况下，这两个方法分别用于把js对象序列化为JSON字符串和把JSON字符串解析为原生JS值。
+
+![image-20210126111928579](/image-20210126111928579.png)
+
+​	对于js中所有函数及原型对象都会被有意忽略，不体现在结果中。此外，值为undefined的任何属性也都会被跳过。结果中最终都是值为有效JSON数据类型的实例属性。
+
+```js
+var bocopy = JSON.parse(jsonText);
+```
+
+​	上面将JSON字符串变成相应的JS值。
+
+#### 序列化选项
+
+```js
+JSON.stringify(json对象，过滤器(可以数组/函数),是否在JSON字符串中保留缩进);
+```
+
+​	过滤器填你想要的数据。
+
+## 第二十二章：高级技巧
+
+### 高级函数
+
+#### 作用域安全的构造函数
+
+```js
+// 防止非new造成的影响
+	function obj(name, age, work) {
+        if (this instanceof obj) {
+          this.age = age;
+          this.name = name;
+          this.work = work;
+        } else {
+          new obj(name, age, work);
+        }
+      }
+      var obj1 = new obj("tang", 13, "IT");
+      console.log(obj1.age);
+```
+
+## 第二十三章：离线应用与客户端存储
+
+​	做到设备有电就能使用
+
+- 确保应用知道设备是否能上网
+- 应用还必须能访问一定的资源（图像，js，css）
+- 有一块本地空间用于保存数据
+
+### 离线检测
+
+​	HTML5使用navigator.onLine属性检测设备是否能上网，从而反正正确的值。
+
+​	![image-20210127133738874](/image-20210127133738874.png)
+
+![image-20210127133908486](/image-20210127133908486.png)
+
+![image-20210127133922221](/image-20210127133922221.png)
+
+```
+        EventUtil.addHandler(window, "online", function(){
+            alert("online")
+        });
+        EventUtil.addHandler(window, "offline", function(){
+           alert(""离线"")  ;
+        });
+```
+
+​	现在浏览器**上面会报错**	
+
+​	为了检测是否离线，在页面加载后，最好先通navigator.onLine取得初始状态，然后通过上述两个事件来确定网络连接状态是否变换。当上述事件触发时，navigator.onLine也会发生改变，不过必须手工轮询这个属性才能检测网络状态的变换。
+
+### 离线/应用缓存
+
+​	简称为appcache，是专门为开发离线Web应用而设计的。Appache就是从浏览器的缓存中分出来的一块缓存区。要想在这个缓存中保存数据，可以使用一个描述文件，列出要下载和缓存的资源。
+
+
+
+### 在浏览器中保存数据
+
+#### cookie
+
+​	最初在客户端存储会话信息。该标准要求服务器任意的HTTP请求发送Set-Cookie HTTP头作为响应的一部分，其中包含会话信息。
+
+![image-20210127161414445](/image-20210127161414445.png)
+
+##### 限制
+
+​	cookie是绑定在特定的域名下的。但是每个域能保存的cookie数量是有限的。而且浏览器对于cookie的尺寸也有限制。
+
+##### cookie的构成
+
+​	名称，值，域，路径，失效时间，安全标志
+
