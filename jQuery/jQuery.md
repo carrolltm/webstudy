@@ -357,7 +357,7 @@ jQuery(function($) {
 > 在创建样式转换器时，优秀的Web开发人员应该遵守渐进增强的原则。第5
 > 章还会学习怎么在jQuery代码中向样式转换器内注入内容，让禁用JavaScript的用户看不到与功能无关的控件。  
 
-```js
+```html
 <div id="switcher" class="switcher">
 <h3>Style Switcher</h3>
 <button id="switcher-default">
@@ -382,19 +382,155 @@ $('body').addclass('large')
 
 #### 启用其他按钮
 
+```js
+$(document).ready(function() {
+$('#switcher-default').on('click', function() {
+$('body').removeClass('narrow');
+$('body').removeClass('large');
+});
+$('#switcher-narrow').on('click', function() {
+$('body').addClass('narrow');
+$('body').removeClass('large');
+});
+$('#switcher-large').on('click', function() {
+$('body').removeClass('narrow');
+$('body').addClass('large');
+});
+});
+```
 
+#### 利用事件处理程序的上下文
 
+​	当触发任何事件处理程序时，关键字this引用的都是携带相应行为的DOM元素。前面我们谈到过， $()函数可以将DOM元素作为参数，而this关键字是实现这个功能的关键①  。① 即允许向$()函数传递DOM元素，也是为了更方便地将引用DOM元素的this转换为jQuery对象。  
 
+```js
+$(this).addClass('selected');
+```
 
+```js
+$(document).ready(function() {
+$('#switcher-default')
+.addClass('selected')
+.on('click', function() {
+$('body').removeClass('narrow');
+$('body').removeClass('large');
+$('#switcher button').removeClass('selected');
+$(this).addClass('selected');
+});
+$('#switcher-narrow').on('click', function() {
+	$('body').addClass('narrow');
+	$('body').removeClass('large');
+	$('#switcher button').removeClass('selected');
+	$(this).addClass('selected');
+});
+```
 
+第一，在通过对.on()的一次调用为每个按钮都绑定相同的单击事件处理程序时， 隐式迭代机制再次发挥了作用。
 
+第二， **行为队列机制**让我们在同一个单击事件上绑定了两个函数，而且第二个函数不会覆盖第一个函数。jQuery总是按照我们**注册的顺序来触发事件处理程序。**  
 
+最后，我们使用jQuery的连缀能力将每次添加和移除类的操作压缩到了一行代码中。  
 
+#### 使用事件上下文进一步减少代码
 
+​	对于`removeClass()`，他的参数是可选的，如果里面没有参数的话就会移除元素中所有的类。
 
+#### 简写的事件
 
+​	鉴于为某个事件（例如简单的单击事件）绑定处理程序极为常用， jQuery提供了一种简化事
+件操作的方式——**简写事件方法**，简写事件方法的原理与对应的.on()调用相同，**可以减少一定**
+**的代码输入量**。  
 
+```js
+不使用.on()而使用.click()可以将前面的样式转换器程序重写
+$(document).ready(function() {
+$('#switcher-default').addClass('selected');
+$('#switcher button').click(function() {
+var bodyClass = this.id.split('-')[1];
+$('body').removeClass().addClass(bodyClass);
+$('#switcher button').removeClass('selected');
+$(this).addClass('selected');
+});
+})
+```
 
+#### 显示和隐藏高级特性
+
+> 这里所谓的高级特性就是指为页面提供样式切换能力的样式转换器  
+
+jQuery也为我们提供了一个简便的toggleClass()方法，能够根据相应的类是否存在而添加或删除类  
+
+```js
+$(document).ready(function() {
+$('#switcher h3').click(function() {
+$('#switcher button').toggleClass('hidden');
+});
+});
+```
+
+### 事件传播
+
+​	在说明基于通常不可单击的页面元素①处理单击事件的能力时，我们构思的界面中已经给出
+了一些提示——样式表切换器标签（即<h3>元素）实际上都是活动的，随时等待用户操作。  
+
+​	jQuery的.hover方法。这个方法可以让我们在鼠标指针进入元素和离开元素时，通过JavaScript来改变元素的样式——事实上是可以执行任意操作。
+
+​	.hover()方法接受两个函数参数。第一个函数会在鼠标指针进入被选择的元素时执行，而第二个函数会在鼠标指针离开该元素时触发。我们可以在这些时候修改应用到按钮上的类，从而实现翻转效果  
+
+​	**.hover()也意味着可以避免JavaScript中的事件传播（ event propagation）导致的**
+**头痛问题。要理解事件传播的含义，首先必须搞清楚JavaScript如何决定由哪个元素来处理给定的**
+**事件。**  
+
+#### 事件的旅程
+
+​	当页面上发生一个事件时，每个层次上的DOM元素都有机会处理这个事件。以下面的页面
+模型为例：  
+
+```html
+<div class="foo">
+<span class="bar">
+<a href="http://www.example.com/">
+The quick brown fox jumps over the lazy dog.
+</a>
+</span>
+<p>
+How razorback-jumping frogs can level six piqued gymnasts!
+</p>
+</div>
+```
+
+![image-20210222113823761](/../图片/image-20210222113823761.png)
+
+​	从逻辑上面看，任何事件都可能会有多个元素负责响应。
+
+​	举例来说，如果单击了页面中的链接元素，那么<div>、 <span>和<a>全都应该得到响应这次单击的机会。毕竟，这3个元素同时都处于用户鼠标指针之下。而<p>元素则与这次交互操作无关。  
+
+​	**允许多个元素响应单击事件的一种策略叫做事件捕获**①。在事件捕获的过程中，事件首先会交给最外层的元素，接着再交给更具体的元素。在这个例子中，意味着单击事件首先会传递给<div>然后是<span>然后是<a>
+
+![image-20210222132954509](/../图片/image-20210222132954509.png)
+
+​	另一种相反的策略叫做**事件冒泡**。即当事件发生时，会首先发送给最具体的元素，在这个元
+素获得响应机会之后，事件会向上冒泡到更一般的元素。在我们的例子中， <a>会首先处理事件，
+然后按照顺序依次是<span>和<div>  
+
+![image-20210222133016349](/../图片/image-20210222133016349.png)
+
+​		毫不奇怪，不同的浏览器开发者最初采用的是不同的事件传播模型。因而，最终出台的DOM
+**标准规定应该同时使用这两种策略**：首先，事件要从一般元素到具体元素逐层捕获，然后，事件
+再通过冒泡返回DOM树的顶层。而事件处理程序可以注册到这个过程中的任何一个阶段。
+为了确保跨浏览器的一致性，而且也为了让人容易理解， jQuery始终会在模型的冒泡阶段注
+册事件处理程序。因此，我们总是可以假定最具体的元素会首先获得响应事件的机会。  
+
+​		为了确保跨浏览器的一致性，而且也为了让人容易理解， jQuery始终会在模型的冒泡阶段注
+册事件处理程序。因此，我们总是可以假定最具体的元素会首先获得响应事件的机会 .
+
+#### 事件冒泡的副作用  
+
+​	事件冒泡可能会导致始料不及的行为，特别是在错误的元素响应mouseover或mouseout事件的情况下。  
+
+### 通过事件对象改变事件的流程
+
+​	为了展示一种.hover()也无能为力的情况①，需要改变前面实现的折叠行为。  
 
 
 
