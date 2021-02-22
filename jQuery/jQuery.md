@@ -265,6 +265,125 @@ var myTag = $('#my-element')[0].tagName;
   $('a[href$=".pdf"]').parent().parent().addClass('tragedy');
 ```
 
+------
+
+## 事件
+
+​	JavaScript内置了一些对用户的交互和其他事件给予响应的方式。为了使页面具有动态性和响应性，就需要利用这种能力 。
+
+- 在页面就绪时执行JavaScript代码；
+- 处理用户事件，比如鼠标单击和按下键盘上的键；
+- 文档中的事件流，以及如何操纵事件流；
+- 模拟用户发起的事件。  
+
+### 在页面加载后执行任务  
+
+​	$(document).ready()事件处理程序可以用来触发函数中的代码 。
+
+#### 代码执行的时机选择
+
+> ​	$(document).ready()   vs  window.onload ()  这两个有类似的效果，但是在触发操作的时间上存在着微妙的差异，这种差异只有在加载的资源多到一定程度时才会体现出来。  
+>
+> ​	当文档完全下载到浏览器中时，会触发window.onload事件。这意味着页面上的全部元素对JavaScript而言都是可以操作的，这种情况对编写功能性的代码非常有利，因为无需考虑加载的次序。
+> ​	另一方面，通过$(document).ready()注册的事件处理程序，则会DOM完全就绪并可以使用时调用。虽然这也意味着所有元素对脚本而言都是可以访问的，但是，却不意味着所有关联的文件都已经下载完毕。换句话说，当HTML下载完成并解析为DOM树之后，代码就可以运行。  
+>
+> [更通俗解释差别](https://www.cnblogs.com/jiajia123/p/6107748.html)
+
+> 加载样式与执行代码
+> 	为了保证JavaScript代码执行以前页面已经应用了样式，最好是在<head>元素中把<link rel="stylesheet">标签和<style>标签放在<script>标签前面。  
+
+​	**一般来说**， 使用$(document).ready()要优于使用onload事件处理程序，
+但必须要明确的一点是，因为支持文件可能还没有加载完成，所以类似图像的
+高度和宽度这样的属性此时则不一定会有效。如果需要访问这些属性，可能就
+得选择实现一个**onload事件**处理程序（或者是使用jQuery为load事件设置处理
+
+#### 基于一个页面执行多个脚本
+
+​	通过js注册事件处理程序的传统机制：把一个函数指定给DOM元素的对应属性  
+
+> 引用函数与调用函数：
+> 	这里在将函数指定为处理程序时，省略了后面的圆括号，只使用了函数名。
+> 	如果带着圆括号，函数会被立即调用；没有圆括号，函数名就只是函数的标识符或函数引用，可以用于在将来再调用函数。  
+
+#### .ready()的简写形式
+
+```
+$(document).ready(
+function(){
+这里是代码
+})
+等价于
+$(function(){
+这里是代码
+})
+```
+
+#### 向.ready()回调函数中传入参数
+
+​	在某些情况下，可能有必要在同一个页面中使用多个JavaScript库。由于很多库都使用$标识符（因为它简短方便），因此就需要一种方式来避免名称冲突。
+为解决这个问题， jQuery提供了一个jQuery.noConflict()方法，调用该方法可以把对$标识符的控制权让渡还给其他库。使用jQuery.noConflict()方法的一般模式如下：  
+
+```js
+<script src="prototype.js"></script>
+<script src="jquery.js"></script>
+<script>
+jQuery.noConflict();
+</script>
+<script src="myscript.js"></script>
+```
+
+​	首先，包含jQuery之外的库（这里是Prototype）。然后，包含jQuery库，取得对$的使用权。
+​	接着，调用.noConflict()方法让出$，以便将控制权交还给最先包含的库（ Prototype）。这样就可以在自定义脚本中使用两个库了——但是，在需要使用jQuery方法时，**必须记住要用jQuery，而不是$来调用**。  
+
+```js
+// 一个在.ready()方法中使用$的技巧
+jQuery(document).ready(function($) {
+//在这里，可以正常使用!
+});
+或者，也可以使用刚刚介绍的简写语法：
+jQuery(function($) {
+//使用$的代码
+});
+```
+
+### 处理简单的事件
+
+​	除了页面加载事件之外，对其他事件处理方式（hook）的缺点也jQuery也提出一种改进方式。
+
+#### 简单的样式转换器
+
+> 渐进增强
+>
+> 在创建样式转换器时，优秀的Web开发人员应该遵守渐进增强的原则。第5
+> 章还会学习怎么在jQuery代码中向样式转换器内注入内容，让禁用JavaScript的用户看不到与功能无关的控件。  
+
+```js
+<div id="switcher" class="switcher">
+<h3>Style Switcher</h3>
+<button id="switcher-default">
+Default
+</button>
+<button id="switcher-narrow">
+Narrow Column
+</button>
+<button id="switcher-large">
+Large Print
+</button>
+</div>
+```
+
+对于添加迪点击事件：可以选择on()方法。
+
+```js
+$('#switcher-default').on('click'.function(){
+$('body').addclass('large')
+})
+```
+
+#### 启用其他按钮
+
+
+
 
 
 
